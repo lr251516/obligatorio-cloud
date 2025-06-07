@@ -1,9 +1,40 @@
 # Local .terraform directories
 .terraform/
+.terraform.lock.hcl
+terraform.tfvars
+*.auto.tfvars
 
 # .tfstate files
 *.tfstate
 *.tfstate.*
+
+# kubernetes
+kubeconfig*
+
+#Docker
+.dockerignore
+
+# Application specific
+application/src/config/database.php
+uploads/
+*.tmp
+
+# AWS
+.aws/
+
+#IDE
+.vscode/
+.idea/
+*.swp
+*.swo
+
+#Environment
+.env
+.env.local
+.env.prod
+
+#Logs
+*.log
 
 # Crash log files
 crash.log
