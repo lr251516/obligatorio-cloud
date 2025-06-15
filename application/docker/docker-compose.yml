@@ -1,0 +1,88 @@
+version: '3.8'
+
+services:
+  # Aplicación PHP
+  ecommerce-app:
+    build:
+      context: ..
+      dockerfile: docker/Dockerfile
+    container_name: ecommerce-php
+    ports:
+      - "8080:80"
+    volumes:
+      # Montar código fuente para desarrollo
+      - ../src:/var/www/html
+      # Montar uploads para persistencia
+      - ./volumes/uploads:/var/www/html/uploads
+      - ./volumes/logs:/var/log/apache2
+    environment:
+      # Configuración de base de datos
+      - DB_HOST=mysql-db
+      - DB_NAME=ecommerce
+      - DB_USER=ecommerce_user
+      - DB_PASSWORD=ecommerce_pass
+      
+      # Configuración de aplicación
+      - APP_ENV=development
+      - APP_DEBUG=true
+      - UPLOAD_PATH=/var/www/html/uploads
+      
+      # SendGrid (para desarrollo)
+      - SENDGRID_API_KEY=your-sendgrid-key-here
+    depends_on:
+      mysql-db:
+        condition: service_healthy
+    networks:
+      - ecommerce-network
+    restart: unless-stopped
+
+  # Base de datos MySQL local para desarrollo
+  mysql-db:
+    image: mysql:8.0
+    container_name: ecommerce-mysql
+    ports:
+      - "3306:3306"
+    environment:
+      - MYSQL_ROOT_PASSWORD=root_password
+      - MYSQL_DATABASE=ecommerce
+      - MYSQL_USER=ecommerce_user
+      - MYSQL_PASSWORD=ecommerce_pass
+    volumes:
+      # Persistir datos de la base
+      - ./volumes/mysql:/var/lib/mysql
+      # Montar script de inicialización si existe
+      - ../src/db-settings.sql:/docker-entrypoint-initdb.d/01-init.sql:ro
+    command: --default-authentication-plugin=mysql_native_password
+    healthcheck:
+      test: ["CMD", "mysqladmin", "ping", "-h", "localhost"]
+      timeout: 10s
+      retries: 5
+      interval: 30s
+    networks:
+      - ecommerce-network
+    restart: unless-stopped
+
+  # phpMyAdmin para administrar la base de datos
+  phpmyadmin:
+    image: phpmyadmin/phpmyadmin:latest
+    container_name: ecommerce-phpmyadmin
+    ports:
+      - "8081:80"
+    environment:
+      - PMA_HOST=mysql-db
+      - PMA_USER=ecommerce_user
+      - PMA_PASSWORD=ecommerce_pass
+    depends_on:
+      - mysql-db
+    networks:
+      - ecommerce-network
+    restart: unless-stopped
+
+volumes:
+  mysql-data:
+    driver: local
+
+networks:
+  ecommerce-network:
+    driver: bridge
+    name: ecommerce-net
