@@ -1,0 +1,49 @@
+apiVersion: v1
+kind: ConfigMap
+metadata:
+  name: ecommerce-config
+  namespace: ecommerce
+  labels:
+    app: ecommerce-php
+    component: configuration
+data:
+  # Configuración de base de datos
+  DB_HOST: "obligatorio-cloud-mysql.cx7rv1mrrls8.us-east-1.rds.amazonaws.com:3306"
+  DB_NAME: "ecommerce"
+  DB_PORT: "3306"
+  
+  # Configuración de aplicación
+  APP_ENV: "production"
+  APP_DEBUG: "false"
+  APP_TIMEZONE: "America/Montevideo"
+  
+  # Configuración de uploads
+  UPLOAD_PATH: "/var/www/html/uploads"
+  MAX_UPLOAD_SIZE: "10M"
+  ALLOWED_EXTENSIONS: "jpg,jpeg,png,gif,webp"
+  UPLOAD_QUALITY: "85"
+  
+  # Configuración de sesiones
+  SESSION_LIFETIME: "120"
+  SESSION_SECURE: "true"
+  SESSION_HTTP_ONLY: "true"
+  
+  # Configuración de logs
+  LOG_LEVEL: "warn"
+  LOG_PATH: "/var/log/apache2"
+  
+  # Configuración de cache
+  CACHE_DRIVER: "file"
+  CACHE_TTL: "3600"
+  
+  # Configuración de email
+  MAIL_FROM_ADDRESS: "lr251516@fi365.ort.edu.uy"
+  MAIL_FROM_NAME: "E-commerce App"
+  
+  # Configuración específica de container
+  CONTAINER_USER: "www-data"
+  CONTAINER_GROUP: "www-data"
+  
+  # Configuración de monitoreo
+  HEALTH_CHECK_ENABLED: "true"
+  METRICS_ENABLED: "false"

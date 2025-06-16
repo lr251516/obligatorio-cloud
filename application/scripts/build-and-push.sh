@@ -125,6 +125,7 @@ build_image() {
     
     # Build de la imagen
     docker build \
+        --platform linux/amd64 \
         -f "$DOCKERFILE_PATH" \
         -t "$ECR_REPOSITORY:$IMAGE_TAG" \
         -t "$FULL_IMAGE_NAME" \
