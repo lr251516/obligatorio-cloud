@@ -60,7 +60,8 @@ fi
 
 # Configurar permisos básicos
 chown -R www-data:www-data /var/www/html
-chmod -R 755 "$UPLOAD_PATH"
+chmod -R 755 /var/www/html
+
 
 # Verificar que .htaccess existe y tiene contenido
 log "🔧 Verificando .htaccess..."
