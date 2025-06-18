@@ -35,6 +35,6 @@ output "db_port" {
 
 output "db_password" {
   description = "Database password"
-  value       = random_password.db_password.result
+  value       = "admin1234"  
   sensitive   = true
 }

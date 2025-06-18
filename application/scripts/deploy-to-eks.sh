@@ -29,8 +29,8 @@ error() {
 }
 
 # Configuración
-TERRAFORM_DIR="../../infrastructure/terraform/environments/prod"
-K8S_DIR="../k8s"
+TERRAFORM_DIR="../infrastructure/terraform/environments/prod"
+K8S_DIR="k8s"
 NAMESPACE="ecommerce"
 
 log "🚀 Iniciando deploy a EKS con valores dinámicos de Terraform"

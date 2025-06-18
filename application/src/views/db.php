@@ -1,6 +1,6 @@
 <?php
 // Configuración generada automáticamente por Docker
-// Generado: Sun Jun 15 23:06:17 UTC 2025
+// Generado: Wed Jun 18 01:46:00 UTC 2025
 
 $host = 'mysql-db';
 $name = 'ecommerce';

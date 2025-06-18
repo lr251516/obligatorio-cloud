@@ -2,15 +2,9 @@
 # RDS Module Main - infrastructure/terraform/modules/rds/main.tf
 # ==========================================
 
-# Random password para la base de datos
-resource "random_password" "db_password" {
-  length  = 16
-  special = true
-}
-
 # RDS MySQL Multi-AZ
 resource "aws_db_instance" "main" {
-  identifier = "${var.project_name}-mysql"
+  identifier = "db-obligatorio"
 
   # Engine configuration
   engine                = "mysql"
@@ -23,7 +17,7 @@ resource "aws_db_instance" "main" {
   # Database configuration
   db_name  = var.db_name
   username = var.db_username
-  password = random_password.db_password.result
+  password = "admin1234"
 
   # Network configuration
   db_subnet_group_name   = var.db_subnet_group_name
@@ -50,6 +44,10 @@ resource "aws_db_instance" "main" {
 
   tags = {
     Name = "${var.project_name}-mysql"
+  }
+
+  lifecycle {
+    ignore_changes = [password]  
   }
 }
 

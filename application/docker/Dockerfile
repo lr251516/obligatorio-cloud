@@ -39,6 +39,9 @@ COPY src/ /var/www/html/
 
 COPY src/htaccess /var/www/html/.htaccess
 
+COPY src/health.php /var/www/html/health.php
+
+
 COPY scripts/entrypoint.sh /usr/local/bin/entrypoint.sh
 COPY scripts/health-check.sh /usr/local/bin/health-check.sh
 RUN chmod +x /usr/local/bin/entrypoint.sh /usr/local/bin/health-check.sh
@@ -47,7 +50,9 @@ RUN chown -R www-data:www-data /var/www/html && \
     find /var/www/html -type d -exec chmod 755 {} \; && \
     find /var/www/html -type f -exec chmod 644 {} \; && \
     chmod 755 /var/www/html/uploads && \
-    chmod 644 /var/www/html/.htaccess
+    chmod 644 /var/www/html/.htaccess && \
+    chmod 644 /var/www/html/health.php
+
 
 ENV APP_ENV=production
 ENV APP_DEBUG=false
