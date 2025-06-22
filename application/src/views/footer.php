@@ -74,7 +74,7 @@ $ig = $statement->fetchColumn();
 
     <!-- slick Carousel -->
     <script src="views/plugins/slick/slick.min.js"></script>
-    <script src="views/plugins/slick/slick-animation.min.js'"></script>
+    <script src="views/plugins/slick/slick-animation.min.js"></script>
 
     <!-- Main Js File -->
     <script src="views/js/script.js"></script>

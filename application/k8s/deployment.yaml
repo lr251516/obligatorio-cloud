@@ -56,13 +56,18 @@ spec:
         - name: DB_USER
           valueFrom:
             secretKeyRef:
-              name: ecommerce-secrets
-              key: DB_USER
+              name: db-credentials
+              key: username
         - name: DB_PASSWORD
           valueFrom:
             secretKeyRef:
-              name: ecommerce-secrets
-              key: DB_PASSWORD
+              name: db-credentials
+              key: password
+        - name: APP_SECRET
+          valueFrom:
+            secretKeyRef:
+              name: app-secrets
+              key: app-secret
         
         # Health checks
         livenessProbe:

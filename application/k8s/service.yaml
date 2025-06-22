@@ -9,7 +9,7 @@ metadata:
   annotations:
     description: "Service para aplicación e-commerce PHP"
 spec:
-  type: ClusterIP
+  type: LoadBalancer
   ports:
   - name: http
     port: 80

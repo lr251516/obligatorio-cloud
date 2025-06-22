@@ -1,6 +1,6 @@
 FROM php:8.2-apache
 
-LABEL maintainer="ORT Uruguay Student"
+LABEL maintainer="ORT Uruguay"
 LABEL project="E-commerce EKS AWS"
 LABEL version="1.0.0"
 LABEL description="PHP E-commerce containerized for EKS deployment"
@@ -37,7 +37,7 @@ RUN mkdir -p /var/www/html/uploads && \
 
 COPY src/ /var/www/html/
 
-COPY src/htaccess /var/www/html/.htaccess
+COPY src/.htaccess /var/www/html/.htaccess
 
 COPY src/health.php /var/www/html/health.php
 
@@ -55,7 +55,7 @@ RUN chown -R www-data:www-data /var/www/html && \
 
 
 ENV APP_ENV=production
-ENV APP_DEBUG=false
+ENV APP_DEBUG=true
 ENV UPLOAD_PATH=/var/www/html/uploads
 ENV APACHE_DOCUMENT_ROOT=/var/www/html
 

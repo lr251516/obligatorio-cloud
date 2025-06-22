@@ -65,9 +65,6 @@ if(isset($_POST['q']) && isset($_GET['c']) && CSRF::validateToken($_POST['token'
 	}
 }
 
-
-
-
 ?>
 <section class="products section">
 	<div class="container">
@@ -111,6 +108,7 @@ if(isset($_POST['q']) && isset($_GET['c']) && CSRF::validateToken($_POST['token'
 			</div>
 			<div class="col-md-9">
 				<div class="row">
+					<?php if(!isset($products) || !is_array($products)) { $products = []; } ?>
 					<?php if(!$searchEmpty): ?>
 						<?php foreach($products as $product): ?>
 							<div class="col-md-4">

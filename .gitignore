@@ -66,3 +66,8 @@ override.tf.json
 # Ignore CLI configuration files
 .terraformrc
 terraform.rc
+
+# Desarrollo local
+application/docker/volumes/
+*.DS_Store
+estructura-local.txt

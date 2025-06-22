@@ -128,7 +128,7 @@ resource "aws_security_group" "rds" {
     from_port       = 3306
     to_port         = 3306
     protocol        = "tcp"
-    security_groups = [aws_security_group.eks_nodes.id]
+    cidr_blocks = var.private_subnet_cidrs
   }
 
   # No outbound traffic needed for RDS

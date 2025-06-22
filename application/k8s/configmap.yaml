@@ -10,7 +10,7 @@ data:
   # Configuración de base de datos
   DB_HOST: "DB_HOST_PLACEHOLDER"
   DB_NAME: "DB_NAME_PLACEHOLDER"
-  DB_PORT: "DB_PORT_PLACEHOLDER"
+  DB_PORT: "3306"
   
   # Configuración de aplicación
   APP_ENV: "production"

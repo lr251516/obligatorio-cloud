@@ -1,6 +1,6 @@
 #!/bin/bash
 
-# Script de Deploy a EKS con valores desde los outputs de Terraform
+# Script de Deploy a EKS desde los outputs de Terraform
 
 set -e
 
@@ -48,6 +48,11 @@ check_dependencies() {
         error "terraform no está instalado"
         exit 1
     fi
+
+    if ! command -v curl &> /dev/null; then
+    error "curl no está instalado"
+    exit 1
+    fi
     
     success "Dependencias verificadas"
 }
@@ -71,9 +76,18 @@ get_terraform_outputs() {
     export CLUSTER_NAME=$(terraform output -raw cluster_name)
     export VPC_ID=$(terraform output -raw vpc_id)
     
+    # Separar host y puerto si DB_ENDPOINT incluye el puerto
+    if [[ "$DB_ENDPOINT" == *:* ]]; then
+      export DB_HOST="$(echo $DB_ENDPOINT | cut -d: -f1)"
+      export DB_PORT="$(echo $DB_ENDPOINT | cut -d: -f2)"
+    else
+      export DB_HOST="$DB_ENDPOINT"
+    fi
+    
     # Obtener valores sensibles
     export DB_USERNAME=$(terraform output -raw db_username 2>/dev/null || echo "admin")
-    export DB_PASSWORD=$(terraform output -raw db_password 2>/dev/null || echo "")
+    export DB_PASSWORD=$(terraform output -raw db_password 2>/dev/null || echo "admin1234")
+
     
     cd - > /dev/null
     
@@ -110,10 +124,10 @@ generate_manifests() {
     mkdir -p "$TEMP_DIR"
     
     # Copiar manifests base
-    cp -r "$K8S_DIR"/* "$TEMP_DIR"/
+    cp -r "$K8S_DIR"/. "$TEMP_DIR"/
     
     # Reemplazar placeholders en configmap.yaml
-    sed -i.bak "s|DB_HOST_PLACEHOLDER|$DB_ENDPOINT|g" "$TEMP_DIR/configmap.yaml"
+    sed -i.bak "s|DB_HOST_PLACEHOLDER|$DB_HOST|g" "$TEMP_DIR/configmap.yaml"
     sed -i.bak "s|DB_NAME_PLACEHOLDER|$DB_NAME|g" "$TEMP_DIR/configmap.yaml"
     sed -i.bak "s|DB_PORT_PLACEHOLDER|$DB_PORT|g" "$TEMP_DIR/configmap.yaml"
     
@@ -150,10 +164,6 @@ apply_manifests() {
     kubectl apply -f "$MANIFEST_DIR/deployment.yaml"
     kubectl apply -f "$MANIFEST_DIR/service.yaml"
     
-    if [ -f "$MANIFEST_DIR/ingress.yaml" ]; then
-        kubectl apply -f "$MANIFEST_DIR/ingress.yaml"
-    fi
-    
     success "Manifests aplicados"
 }
 
@@ -169,11 +179,6 @@ verify_deployment() {
     log "📊 Estado del deployment:"
     kubectl get pods -n "$NAMESPACE"
     kubectl get services -n "$NAMESPACE"
-    
-    if kubectl get ingress -n "$NAMESPACE" > /dev/null 2>&1; then
-        log "🌐 Ingress configurado:"
-        kubectl get ingress -n "$NAMESPACE"
-    fi
     
     success "Deployment verificado exitosamente"
 }
@@ -200,7 +205,7 @@ main() {
     echo
     success "🎉 ¡Deploy completado exitosamente!"
     log "🌍 Para acceder a la aplicación, obtén la URL del Load Balancer:"
-    log "    kubectl get ingress -n $NAMESPACE"
+    log "    kubectl get service ecommerce-service -n $NAMESPACE -o jsonpath='{.status.loadBalancer.ingress[0].hostname}'"
 }
 
 # Ejecutar script principal
