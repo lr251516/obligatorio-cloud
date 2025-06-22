@@ -71,3 +71,7 @@ terraform.rc
 application/docker/volumes/
 *.DS_Store
 estructura-local.txt
+
+# Archivos de desarrollo local que no deben subirse
+application/docker/volumes/
+application/scripts/k8s-generated/
