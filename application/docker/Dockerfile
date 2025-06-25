@@ -5,7 +5,8 @@ LABEL project="E-commerce EKS AWS"
 LABEL version="1.0.0"
 LABEL description="PHP E-commerce containerized for EKS deployment"
 
-RUN apt-get update && apt-get install -y \
+# Dependencias del sistema
+RUN apt-get update && apt-get install -y --no-install-recommends \
     libpng-dev \
     libjpeg-dev \
     libfreetype6-dev \
@@ -15,49 +16,55 @@ RUN apt-get update && apt-get install -y \
     unzip \
     curl \
     vim \
-    && rm -rf /var/lib/apt/lists/*
+    default-mysql-client \
+    && apt-get clean \
+    && rm -rf /var/lib/apt/lists/* /tmp/* /var/tmp/*
 
+# Extensiones PHP
 RUN docker-php-ext-configure gd --with-freetype --with-jpeg \
     && docker-php-ext-install -j$(nproc) \
         pdo_mysql \
         gd \
         zip \
         mbstring \
-        exif
+        exif \
+    && pecl install imagick \
+    && docker-php-ext-enable imagick \
+    && docker-php-source delete
 
-RUN pecl install imagick && docker-php-ext-enable imagick || echo "Imagick installation skipped"
+# Configuracion Apache
+RUN a2enmod rewrite \
+    && sed -i '/<Directory \/var\/www\/>/,/<\/Directory>/ s/AllowOverride None/AllowOverride All/' /etc/apache2/apache2.conf
 
-RUN a2enmod rewrite
+# Directorios y permisos base
+RUN mkdir -p /var/www/html/uploads \
+    && chown -R www-data:www-data /var/www/html \
+    && chmod -R 755 /var/www/html
 
-RUN sed -i '/<Directory \/var\/www\/>/,/<\/Directory>/ s/AllowOverride None/AllowOverride All/' /etc/apache2/apache2.conf
-
-RUN mkdir -p /var/www/html/uploads && \
-    chown -R www-data:www-data /var/www/html && \
-    chmod -R 755 /var/www/html
-
-COPY src/ /var/www/html/
-
-COPY src/.htaccess /var/www/html/.htaccess
-
-COPY src/health.php /var/www/html/health.php
-
-
+# Scripts
 COPY scripts/entrypoint.sh /usr/local/bin/entrypoint.sh
 COPY scripts/health-check.sh /usr/local/bin/health-check.sh
 RUN chmod +x /usr/local/bin/entrypoint.sh /usr/local/bin/health-check.sh
 
-RUN chown -R www-data:www-data /var/www/html && \
-    find /var/www/html -type d -exec chmod 755 {} \; && \
-    find /var/www/html -type f -exec chmod 644 {} \; && \
-    chmod 755 /var/www/html/uploads && \
-    chmod 644 /var/www/html/.htaccess && \
-    chmod 644 /var/www/html/health.php
+# Configuracion de la base de datos
+COPY src/db-settings.sql /docker-entrypoint-initdb.d/db-settings.sql
 
+# Codigo fuente
+COPY src/ /var/www/html/
 
-ENV APP_ENV=production
-ENV APP_DEBUG=true
-ENV UPLOAD_PATH=/var/www/html/uploads
-ENV APACHE_DOCUMENT_ROOT=/var/www/html
+# Permisos finales
+RUN chown -R www-data:www-data /var/www/html \
+    && find /var/www/html -type d -exec chmod 755 {} \; \
+    && find /var/www/html -type f -exec chmod 644 {} \; \
+    && chmod 755 /var/www/html/uploads \
+    && chmod 644 /var/www/html/.htaccess \
+    && chmod 644 /var/www/html/health.php
+
+# Variables de entorno
+ENV APP_ENV=production \
+    APP_DEBUG=true \
+    UPLOAD_PATH=/var/www/html/uploads \
+    APACHE_DOCUMENT_ROOT=/var/www/html
 
 EXPOSE 80
 

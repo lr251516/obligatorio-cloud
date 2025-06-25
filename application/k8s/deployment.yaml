@@ -136,3 +136,33 @@ spec:
       
       dnsPolicy: ClusterFirst
       
+      initContainers:
+      - name: db-init
+        image: "ACCOUNT_ID.dkr.ecr.us-east-1.amazonaws.com/ecommerce-php:latest"
+        imagePullPolicy: Always
+        envFrom:
+        - configMapRef:
+            name: ecommerce-config
+        env:
+        - name: DB_USER
+          valueFrom:
+            secretKeyRef:
+              name: db-credentials
+              key: username
+        - name: DB_PASSWORD
+          valueFrom:
+            secretKeyRef:
+              name: db-credentials
+              key: password
+        command:
+        - "sh"
+        - "-c"
+        - |
+          echo "Waiting for database to be ready..."
+          until mysql -h $DB_HOST -P $DB_PORT -u $DB_USER -p$DB_PASSWORD -e "SELECT 1"; do
+            echo "Database is not ready yet, sleeping..."
+            sleep 5
+          done
+          echo "Database is ready. Initializing schema..."
+          mysql -h $DB_HOST -P $DB_PORT -u $DB_USER -p$DB_PASSWORD $DB_NAME < /docker-entrypoint-initdb.d/db-settings.sql
+          echo "Database schema initialized."
