@@ -88,3 +88,20 @@ module "rds" {
 
   depends_on = [module.vpc, module.security]
 }
+
+# ==========================================
+# BASTION MODULE
+# ==========================================
+
+module "bastion" {
+  source = "../../modules/bastion"
+
+  project_name           = var.project_name
+  vpc_id                 = module.vpc.vpc_id
+  public_subnet_id       = module.vpc.public_subnet_ids[0]
+  rds_security_group_id  = module.security.rds_security_group_id
+  key_pair_name          = var.key_pair_name
+  mysql_host             = module.rds.db_instance_endpoint
+
+  depends_on = [module.vpc, module.security, module.rds]
+}
