@@ -99,3 +99,21 @@ output "db_port" {
   value       = module.rds.db_port
 }
 
+# ==========================================
+# BASTION OUTPUTS
+# ==========================================
+
+output "bastion_public_ip" {
+  description = "Public IP of bastion host"
+  value       = module.bastion.bastion_public_ip
+}
+
+output "bastion_ssh_command" {
+  description = "SSH command to connect to bastion"
+  value       = module.bastion.ssh_connection_command
+}
+
+output "mysql_tunnel_command" {
+  description = "SSH tunnel command for MySQL"
+  value       = module.bastion.mysql_tunnel_command
+}

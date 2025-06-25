@@ -115,3 +115,13 @@ variable "db_username" {
   type        = string
   default     = "admin"
 }
+
+# ==========================================
+# BASTION VARIABLES
+# ==========================================
+
+variable "key_pair_name" {
+  description = "Name of the EC2 Key Pair for SSH access"
+  type        = string
+  default     = "vockey"
+}
