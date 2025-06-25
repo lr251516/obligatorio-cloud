@@ -2,9 +2,9 @@
 # Security Module - infrastructure/terraform/modules/security/main.tf
 # ==========================================
 
-# ALB Security Group
-resource "aws_security_group" "alb" {
-  name_prefix = "${var.project_name}-alb-"
+# CLB Security Group
+resource "aws_security_group" "clb" {
+  name_prefix = "${var.project_name}-clb-"
   vpc_id      = var.vpc_id
 
   # HTTP from internet
@@ -39,7 +39,7 @@ resource "aws_security_group" "alb" {
   }
 
   tags = {
-    Name = "${var.project_name}-alb-sg"
+    Name = "${var.project_name}-clb-sg"
   }
 }
 

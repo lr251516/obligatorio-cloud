@@ -21,7 +21,7 @@ spec:
   sessionAffinity: None
 
 ---
-# Service adicional para health checks del ALB
+# Service adicional para health checks del CLB
 apiVersion: v1
 kind: Service
 metadata:
@@ -31,7 +31,7 @@ metadata:
     app: ecommerce-php
     component: health
   annotations:
-    description: "Service para health checks del Application Load Balancer"
+    description: "Service para health checks del Classic Load Balancer"
 spec:
   type: ClusterIP
   ports:

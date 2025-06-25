@@ -2,9 +2,9 @@
 # Security Module Outputs - infrastructure/terraform/modules/security/outputs.tf
 # ==========================================
 
-output "alb_security_group_id" {
-  description = "ID of the ALB security group"
-  value       = aws_security_group.alb.id
+output "clb_security_group_id" {
+  description = "ID of the CLB security group"
+  value       = aws_security_group.clb.id
 }
 
 output "eks_control_plane_security_group_id" {

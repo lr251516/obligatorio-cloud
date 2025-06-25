@@ -46,9 +46,9 @@ output "database_subnet_ids" {
 # SECURITY OUTPUTS
 # ==========================================
 
-output "alb_security_group_id" {
-  description = "ID of the ALB security group"
-  value       = module.security.alb_security_group_id
+output "clb_security_group_id" {
+  description = "ID of the CLB security group"
+  value       = module.security.clb_security_group_id
 }
 
 output "eks_nodes_security_group_id" {
