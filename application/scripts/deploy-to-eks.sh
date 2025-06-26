@@ -198,11 +198,26 @@ cleanup() {
     rm -rf "$MANIFEST_DIR"
 }
 
+# Instalar Metrics Server si no existe
+install_metrics_server() {
+    if ! kubectl get deployment metrics-server -n kube-system &>/dev/null; then
+        log "⚙️  Instalando Metrics Server en el clúster..."
+        kubectl apply -f https://github.com/kubernetes-sigs/metrics-server/releases/latest/download/components.yaml
+        # Parchear para EKS
+        kubectl -n kube-system patch deployment metrics-server \
+          --type='json' -p='[{"op":"add","path":"/spec/template/spec/containers/0/args/-","value":"--kubelet-insecure-tls"}]'
+        log "✅ Metrics Server instalado y parcheado para EKS."
+    else
+        log "✅ Metrics Server ya está instalado."
+    fi
+}
+
 # Función principal
 main() {
     log "🎯 Deploy de E-commerce PHP a EKS"
     echo
-    
+
+    install_metrics_server
     check_dependencies
     get_terraform_outputs
     configure_kubectl

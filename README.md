@@ -24,6 +24,7 @@ Este proyecto implementa la migración de un e-commerce PHP desde infraestructur
 - **Materia**: Implementación de Soluciones Cloud
 - **Carrera**: Analista en Infraestructura Informática
 - **Universidad**: ORT Uruguay
+- **Entrega**: 26 de Junio 2025
 
 ### Objetivos Técnicos
 - ✅ **Alta disponibilidad** y tolerancia a fallas Multi-AZ
@@ -175,7 +176,6 @@ obligatorio-cloud/
 ```bash
 # 1. Clonar repositorio
 git clone https://github.com/lr251516/obligatorio-cloud.git
-
 cd obligatorio-cloud
 
 # 2. Navegar a directorio de Terraform
@@ -190,6 +190,15 @@ terraform plan
 # 5. Aplicar infraestructura
 terraform apply
 ```
+
+⏱️ **Tiempo estimado: ~15 minutos**
+
+El deployment de infraestructura toma aproximadamente 15 minutos en completarse. Los componentes que más tiempo requieren son:
+- **EKS Cluster**: ~10-12 minutos (creación del control plane y node groups)
+- **RDS Multi-AZ**: ~8-10 minutos (instancia primaria + standby)
+- **VPC y componentes de red**: ~2-3 minutos
+
+Durante este tiempo puedes preparar las herramientas para los siguientes pasos.
 
 ### 🐳 Paso 2: Build y Push de Imagen Docker
 
@@ -290,27 +299,41 @@ kubectl logs -f deployment/ecommerce-php -n ecommerce
 kubectl get pods -n ecommerce
 
 # Ver logs de aplicación
-kubectl logs -f deployment/ecommerce-php -n ecommerce
+kubectl logs -f deployment/ecommerce-app -n ecommerce
 
 # Test básico de conectividad
 LB_URL=$(kubectl get service ecommerce-service -n ecommerce -o jsonpath='{.status.loadBalancer.ingress[0].hostname}')
 curl -I http://$LB_URL
 ```
 
-## 🗄️ Gestión de Base de Datos
+## 🗄️ Acceso a la Base de Datos (RDS) desde el Bastion
 
-### Acceso a Base de Datos (via Bastion)
+1. **Desde tu máquina local** (donde tienes el repo y Terraform), obtén el endpoint de la base de datos:
+   ```bash
+   cd infrastructure/terraform/environments/prod
+   terraform output -raw db_endpoint
+   # Ejemplo de output: db-obligatorio.xxxxxxxx.us-east-1.rds.amazonaws.com
+   ```
 
-```bash
-# Obtener IP del bastion
-terraform output bastion_public_ip
+2. **Conéctate al bastion host** por SSH:
+   ```bash
+   # Obtener IP del bastion
+   terraform output bastion_public_ip
+   
+   # SSH al bastion
+   ssh -i ~/.ssh/vockey.pem ec2-user@BASTION_IP
+   ```
 
-# SSH al bastion
-ssh -i ~/.ssh/vockey.pem ec2-user@BASTION_IP
+3. **Conectar a MySQL desde el bastion**, conéctate a la base de datos usando el endpoint obtenido (credenciales en rds/README.md):
+   ```bash
+   mysql -h <db-endpoint> -u admin -p<contraseña> ecommerce
+   # Ejemplo:
+   # mysql -h db-obligatorio.xxxxxxxx.us-east-1.rds.amazonaws.com -u admin -p1234 ecommerce
+   ```
 
-# Conectar a MySQL desde el bastion
-mysql -h $(terraform output -raw db_endpoint) -u admin -padmin1234 ecommerce
-```
+> **Nota:**
+> - El bastion no tiene acceso a los outputs de Terraform, por lo que debes copiar el endpoint desde tu máquina local.
+> - Para credenciales específicas y configuración detallada, consultar `infrastructure/terraform/modules/rds/README.md`
 
 ## 🔒 Buenas Prácticas de Seguridad
 
@@ -341,11 +364,9 @@ application/docker/volumes/  # Volúmenes locales
 
 ### Security Groups Implementados
 
-**Por Capa de Seguridad:**
-- **Classic Load Balancer**: Solo puertos 80/443 desde Internet (0.0.0.0/0)
-- **EKS Worker Nodes**: Solo tráfico desde CLB y control plane de EKS
-- **RDS MySQL**: Solo puerto 3306 desde EKS nodes y bastion host
-- **Bastion Host**: Solo SSH (puerto 22) desde Internet
+- **Security Groups restrictivos** implementados por capas de seguridad
+- **Configuración detallada** disponible en `infrastructure/terraform/modules/security/README.md`
+- **Principios aplicados**: Least Privilege, Defense in Depth, Zero Trust
 
 ### Gestión de Secrets
 
@@ -460,13 +481,22 @@ ssh -i ~/.ssh/vockey.pem ec2-user@$(terraform output -raw bastion_public_ip) \
 
 ### Problemas Comunes de MySQL
 
-**Error: "Can't connect to local MySQL server through socket"**
+**Error: "ERROR 2002 (HY000): Can't connect to local MySQL server through socket"**
 ```bash
 # Verificar que DB_HOST apunte al endpoint de RDS, no a localhost
 kubectl get configmap ecommerce-config -n ecommerce -o yaml
 
 # El DB_HOST debe ser algo como: obligatorio-rds.xxxxx.us-east-1.rds.amazonaws.com
 # NO debe ser: localhost, 127.0.0.1 o mysql
+```
+
+**Error: "Access denied for user"**
+```bash
+# Verificar credenciales en el secret
+kubectl get secret ecommerce-secret -n ecommerce -o yaml
+
+# Decodificar credenciales
+echo "YWRtaW4=" | base64 -d  # Debe mostrar: admin
 ```
 
 **Error: "Unknown database 'ecommerce'"**
@@ -536,6 +566,30 @@ terraform output bastion_public_ip
 aws ec2 describe-security-groups --group-names bastion-sg
 ```
 
+### Scripts de Diagnóstico
+
+**Script de verificación completa:**
+```bash
+#!/bin/bash
+echo "=== Verificación de Estado Completa ==="
+
+echo "1. Estado de Terraform:"
+terraform output
+
+echo "2. Estado de EKS:"
+kubectl get nodes
+
+echo "3. Estado de Aplicación:"
+kubectl get all -n ecommerce
+
+echo "4. Conectividad de Load Balancer:"
+LB_URL=$(kubectl get service ecommerce-service -n ecommerce -o jsonpath='{.status.loadBalancer.ingress[0].hostname}')
+curl -I http://$LB_URL
+
+echo "5. Logs recientes:"
+kubectl logs --tail=20 deployment/ecommerce-php -n ecommerce
+```
+
 ## 📚 Documentación
 
 ### 📖 Documentos Incluidos
@@ -578,15 +632,15 @@ kubectl get hpa -n ecommerce                     # Ver auto scaling
 
 **Docker**:
 ```bash
-docker images                     # Listar imágenes
+docker images                      # Listar imágenes
 docker ps                         # Contenedores activos
 docker logs <container-id>        # Ver logs
 ```
 
 **AWS CLI**:
 ```bash
-aws eks describe-cluster --name obligatorio-eks-cluster               # Info del cluster
-aws rds describe-db-instances                                         # Info de RDS
+aws eks describe-cluster --name obligatorio-eks-cluster    # Info del cluster
+aws rds describe-db-instances                              # Info de RDS
 aws ec2 describe-instances --filters "Name=tag:Name,Values=*bastion*" # Info bastion
 ```
 
@@ -614,8 +668,7 @@ kubectl logs deployment/ecommerce-php -n ecommerce --previous
 
 ### Universidad ORT Uruguay
 - **Materia**: Implementación de Soluciones Cloud (ISC)
-- **Carrera**: Analista en Infraestructura Informática
-- **Año**: 2025
+- **Proyecto**: Obligatorio 2025 
 
 ### Criterios de Evaluación Cumplidos
 - ✅ **Tolerancia a fallas** - Multi-AZ deployment
