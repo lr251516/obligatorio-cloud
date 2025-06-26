@@ -217,10 +217,10 @@ main() {
     log "🎯 Deploy de E-commerce PHP a EKS"
     echo
 
-    install_metrics_server
     check_dependencies
     get_terraform_outputs
     configure_kubectl
+    install_metrics_server
     generate_manifests
     apply_manifests
     verify_deployment
