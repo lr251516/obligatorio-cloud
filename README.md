@@ -306,34 +306,30 @@ LB_URL=$(kubectl get service ecommerce-service -n ecommerce -o jsonpath='{.statu
 curl -I http://$LB_URL
 ```
 
-## 🗄️ Acceso a la Base de Datos (RDS) desde el Bastion
+### 🛒 Paso 6: Cargar Datos de Ejemplo
 
-1. **Desde tu máquina local** (donde tienes el repo y Terraform), obtén el endpoint de la base de datos:
-   ```bash
-   cd infrastructure/terraform/environments/prod
-   terraform output -raw db_endpoint
-   # Ejemplo de output: db-obligatorio.xxxxxxxx.us-east-1.rds.amazonaws.com
-   ```
+Para probar la funcionalidad del e-commerce, puedes cargar productos de ejemplo en la base de datos:
 
-2. **Conéctate al bastion host** por SSH:
-   ```bash
-   # Obtener IP del bastion
-   terraform output bastion_public_ip
-   
-   # SSH al bastion
-   ssh -i ~/.ssh/vockey.pem ec2-user@BASTION_IP
-   ```
+```bash
+# 1. Conectar al bastion host
+ssh -i ~/.ssh/vockey.pem ec2-user@$(terraform output -raw bastion_public_ip)
 
-3. **Conectar a MySQL desde el bastion**, conéctate a la base de datos usando el endpoint obtenido (credenciales en rds/README.md):
-   ```bash
-   mysql -h <db-endpoint> -u admin -p<contraseña> ecommerce
-   # Ejemplo:
-   # mysql -h db-obligatorio.xxxxxxxx.us-east-1.rds.amazonaws.com -u admin -p1234 ecommerce
-   ```
+# 2. Conectar a MySQL usando el script incluido
+./connect-mysql.sh
 
-> **Nota:**
-> - El bastion no tiene acceso a los outputs de Terraform, por lo que debes copiar el endpoint desde tu máquina local.
-> - Para credenciales específicas y configuración detallada, consultar `infrastructure/terraform/modules/rds/README.md`
+# 3. Cargar datos de ejemplo
+# Ver instrucciones detalladas y queries en: infrastructure/terraform/modules/rds/README.md
+```
+
+**📚 Documentación completa de base de datos:**
+- **Queries de ejemplo:** `infrastructure/terraform/modules/rds/README.md`
+- **Productos de muestra:** Scripts SQL para cargar productos en diferentes categorías
+- **Administración:** Queries útiles para gestión de productos y categorías
+
+Una vez cargados los datos, podrás:
+- ✅ **Ver productos** en la página principal del e-commerce
+- ✅ **Filtrar por categorías** (Electronics, Clothing)
+- ✅ **Ver detalles** de cada producto con imágenes
 
 ## 🔒 Buenas Prácticas de Seguridad
 
