@@ -16,7 +16,7 @@ RUN apt-get update && apt-get install -y --no-install-recommends \
     unzip \
     curl \
     vim \
-    default-mysql-client \
+    mariadb-client \
     && apt-get clean \
     && rm -rf /var/lib/apt/lists/* /tmp/* /var/tmp/*
 
@@ -62,7 +62,7 @@ RUN chown -R www-data:www-data /var/www/html \
 
 # Variables de entorno
 ENV APP_ENV=production \
-    APP_DEBUG=true \
+    APP_DEBUG=false \
     UPLOAD_PATH=/var/www/html/uploads \
     APACHE_DOCUMENT_ROOT=/var/www/html
 

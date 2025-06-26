@@ -7,10 +7,13 @@ Migración de e-commerce PHP a Amazon EKS con arquitectura cloud-native tolerant
 - [🎯 Objetivos del Proyecto](#-objetivos-del-proyecto)
 - [🏗️ Arquitectura](#️-arquitectura)
 - [📊 Estructura del Proyecto](#-estructura-del-proyecto)
-- [🔧 Stack Tecnológico](#-stack-tecnológico)
+- [🔧 Stack de Tecnologías](#-stack-de-tecnologias)
 - [🚀 Guía de Implementación](#-guía-de-implementación)
 - [📈 Características Implementadas](#-características-implementadas)
+- [🗄️ Gestión de Base de Datos](#️-gestión-de-base-de-datos)
+- [🔒 Buenas Prácticas de Seguridad](#-buenas-prácticas-de-seguridad)
 - [🧪 Testing y Verificación](#-testing-y-verificación)
+- [🚨 Troubleshooting](#-troubleshooting)
 - [📚 Documentación](#-documentación)
 
 ## 🎯 Objetivos del Proyecto
@@ -21,7 +24,6 @@ Este proyecto implementa la migración de un e-commerce PHP desde infraestructur
 - **Materia**: Implementación de Soluciones Cloud
 - **Carrera**: Analista en Infraestructura Informática
 - **Universidad**: ORT Uruguay
-- **Entrega**: 26 de Junio 2025
 
 ### Objetivos Técnicos
 - ✅ **Alta disponibilidad** y tolerancia a fallas Multi-AZ
@@ -68,24 +70,30 @@ El diagrama muestra una **arquitectura de 3 capas** altamente disponible:
 ```
 obligatorio-cloud/
 ├── 📁 docs/                           # Documentación técnica
-│   └── architecture/                  # Diagramas y diseño
+│   └── architecture/                  # Diagrama de arquitectura
 ├── 📁 infrastructure/                 # Infrastructure as Code
 │   └── terraform/                     # Módulos Terraform
 │       ├── modules/                   # Módulos reutilizables
-│       │   ├── vpc/                   # Configuración de red Multi-AZ
-│       │   ├── eks/                   # Cluster Kubernetes
-│       │   ├── rds/                   # Base de datos MySQL
-│       │   ├── security/              # Grupos de seguridad
-│       │   └── bastion/               # Host de administración
-│       └── environments/              # Configuraciones por ambiente
+│       │   ├── vpc/                   # Configuración de VPC
+│       │   ├── eks/                   # Configuración de Cluster Kubernetes
+│       │   ├── rds/                   # Configuración de Base de datos MySQL
+│       │   ├── security/              # Configuración de Security Groups
+│       │   └── bastion/               # Configuración de bastión de administración
+│       └── environments/              # Separación por ambiente
 │           └── prod/                  # Ambiente de producción
 ├── 📁 application/                    # Aplicación e-commerce
 │   ├── src/                           # Código fuente PHP
-│   ├── docker/                        # Dockerfile optimizado
+│   ├── docker/                        # Dockerfile
 │   ├── k8s/                           # Manifiestos Kubernetes
 │   └── scripts/                       # Scripts de automatización
+│       ├── build-and-push.sh          # Build y push a ECR
+│       ├── deploy-to-eks.sh           # Deploy automatizado a EKS
+│       ├── entrypoint.sh              # Inicialización de contenedor
+│       └── health-check.sh            # Health checks para contenedor
 └── 📁 .gitignore, README.md, etc.     # Archivos raíz
 ```
+
+**Nota**: Durante el deployment se genera temporalmente un directorio `k8s-generated/` con manifiestos con valores reales de la infraestructura. Estos archivos no se versionan por seguridad.
 
 ## 🔧 Stack de Tecnologías
 
@@ -104,6 +112,7 @@ obligatorio-cloud/
 - **Docker** para empaquetado de aplicación
 - **Amazon ECR** como registry de imágenes
 - **PHP 8.2 + Apache** optimizado para producción
+- **Logs dirigidos a stdout/stderr** para observabilidad en Kubernetes
 
 ### ⚙️ Orquestación
 - **Amazon EKS** (Kubernetes 1.33)
@@ -115,11 +124,12 @@ obligatorio-cloud/
 - **PHP 8.2** con Apache como web server
 - **MySQL 8.0** como base de datos
 - **Configuración cloud-native** con variables de entorno
+- **Sistema de logs unificado** (Apache + PHP → stdout/stderr)
 
 ### 🔧 Herramientas DevOps
 - **AWS CLI** para interacción con servicios
 - **kubectl** para gestión de Kubernetes
-- **Scripts bash** para automatización de deployment
+- **Scripts bash automatizados** para deployment
 
 ## 🚀 Guía de Implementación
 
@@ -165,21 +175,19 @@ obligatorio-cloud/
 ```bash
 # 1. Clonar repositorio
 git clone https://github.com/lr251516/obligatorio-cloud.git
+
 cd obligatorio-cloud
 
 # 2. Navegar a directorio de Terraform
 cd infrastructure/terraform/environments/prod
 
-# 3. Configurar variables (crear terraform.tfvars)
-echo 'key_pair_name = "vockey"' > terraform.tfvars
-
-# 4. Inicializar Terraform
+# 3. Inicializar Terraform
 terraform init
 
-# 5. Planificar cambios
+# 4. Planificar cambios
 terraform plan
 
-# 6. Aplicar infraestructura
+# 5. Aplicar infraestructura
 terraform apply
 ```
 
@@ -189,18 +197,24 @@ terraform apply
 # Navegar a directorio de aplicación
 cd application/
 
-# Ejecutar script de build y push automatizado
+# Ejecutar script automatizado de build y push
 ./scripts/build-and-push.sh
 
-# O manualmente:
-# 1. Build de imagen
-docker build -f docker/Dockerfile -t ecommerce-php .
+# El script automáticamente:
+# 1. Verifica dependencias (Docker, AWS CLI)
+# 2. Obtiene información de AWS (Account ID, región)
+# 3. Crea repositorio ECR si no existe
+# 4. Realiza login en ECR
+# 5. Construye imagen optimizada con platform linux/amd64
+# 6. Tagea imagen para ECR registry
+# 7. Sube imagen a ECR con tag latest
+# 8. Opcional: limpia imágenes locales para ahorrar espacio
+```
 
-# 2. Tag para ECR
-docker tag ecommerce-php:latest <account-id>.dkr.ecr.us-east-1.amazonaws.com/ecommerce-php:latest
-
-# 3. Push a ECR
-docker push <account-id>.dkr.ecr.us-east-1.amazonaws.com/ecommerce-php:latest
+**Opciones del script build-and-push.sh:**
+```bash
+# Ayuda
+./scripts/build-and-push.sh --help
 ```
 
 ### ⚓ Paso 3: Deploy a Kubernetes
@@ -210,26 +224,82 @@ docker push <account-id>.dkr.ecr.us-east-1.amazonaws.com/ecommerce-php:latest
 ./scripts/deploy-to-eks.sh
 
 # El script automáticamente:
-# 1. Configura kubectl con el cluster EKS
-# 2. Genera manifests con valores dinámicos de Terraform
-# 3. Aplica los recursos a Kubernetes
-# 4. Verifica el deployment
+# 1. Verifica dependencias (kubectl, terraform, curl)
+# 2. Obtiene outputs dinámicos de Terraform (DB endpoint, cluster name, etc.)
+# 3. Configura kubectl con el cluster EKS
+# 4. Genera manifiestos en k8s-generated/ con valores reales
+# 5. Aplica recursos a Kubernetes en orden correcto
+# 6. Verifica que deployment sea exitoso
+# 7. Limpia archivos temporales
 ```
 
-### 🌐 Paso 4: Verificar Funcionamiento
+**¿Qué hace el script deploy-to-eks.sh?**
+- Genera manifiestos dinámicos con valores reales de la infraestructura
+- Configura secrets con credenciales reales de RDS
+- Actualiza ConfigMap con endpoint real de base de datos
+- Aplica recursos en el orden correcto (namespace → secrets → config → deployment → service)
+- Verifica el estado de los pods y servicios
+
+### 🌐 Paso 4: Acceder a la Aplicación E-commerce
+
+Una vez completado el deployment, obtén la URL de acceso público:
 
 ```bash
 # Obtener URL del Classic Load Balancer
 kubectl get service ecommerce-service -n ecommerce -o jsonpath='{.status.loadBalancer.ingress[0].hostname}'
 
+# Ejemplo de output:
+# a1234567890abcdef-1234567890.us-east-1.elb.amazonaws.com
+```
+
+#### 🛒 **Acceso a la Tienda Online**
+
+```bash
+# Construir URL completa de la aplicación
+echo "http://$(kubectl get service ecommerce-service -n ecommerce -o jsonpath='{.status.loadBalancer.ingress[0].hostname}')"
+
+# Abrir en navegador (ejemplo)
+# http://a1234567890abcdef-1234567890.us-east-1.elb.amazonaws.com
+```
+
+**Funcionalidades disponibles:**
+- ✅ **Catálogo de productos** - Página principal con productos
+- ✅ **Carrito de compras** - Agregar/quitar productos
+- ✅ **Búsqueda por categorías** - Filtros de productos
+- ✅ **Páginas informativas** - About, FAQ, Contact
+
+#### ⏱️ **Nota importante sobre el Load Balancer**
+
+El Classic Load Balancer puede tardar **2-5 minutos** en estar completamente disponible después del deployment. Si la URL no responde inmediatamente:
+
+```bash
+# Verificar estado del service
+kubectl describe service ecommerce-service -n ecommerce
+
+# Verificar que los pods estén ready
+kubectl get pods -n ecommerce
+
+# Verificar logs si hay problemas
+kubectl logs -f deployment/ecommerce-php -n ecommerce
+```
+
+### 🌐 Paso 5: Verificar Funcionamiento
+
+```bash
 # Verificar pods
 kubectl get pods -n ecommerce
 
 # Ver logs de aplicación
 kubectl logs -f deployment/ecommerce-php -n ecommerce
+
+# Test básico de conectividad
+LB_URL=$(kubectl get service ecommerce-service -n ecommerce -o jsonpath='{.status.loadBalancer.ingress[0].hostname}')
+curl -I http://$LB_URL
 ```
 
-### 🗄️ Paso 5: Acceso a Base de Datos (via Bastion)
+## 🗄️ Gestión de Base de Datos
+
+### Acceso a Base de Datos (via Bastion)
 
 ```bash
 # Obtener IP del bastion
@@ -239,8 +309,49 @@ terraform output bastion_public_ip
 ssh -i ~/.ssh/vockey.pem ec2-user@BASTION_IP
 
 # Conectar a MySQL desde el bastion
-./connect-mysql.sh
+mysql -h $(terraform output -raw db_endpoint) -u admin -padmin1234 ecommerce
 ```
+
+## 🔒 Buenas Prácticas de Seguridad
+
+### Archivos Sensibles Protegidos
+
+El `.gitignore` mejorado protege información sensible:
+
+```bash
+# Archivos de infraestructura
+*.tfstate              # Estados de Terraform
+*.tfvars               # Variables sensibles
+.terraform/            # Cache de Terraform
+
+# Archivos de Kubernetes generados dinámicamente
+k8s-generated/         # Manifiestos con valores reales
+kubeconfig*            # Configuraciones de cluster
+
+# Secretos y configuración
+.env                   # Variables de entorno
+.aws/                  # Credenciales AWS
+*.pem                  # Claves SSH
+
+# Logs y datos temporales
+*.log                  # Archivos de log
+uploads/               # Archivos subidos por usuarios
+application/docker/volumes/  # Volúmenes locales
+```
+
+### Security Groups Implementados
+
+**Por Capa de Seguridad:**
+- **Classic Load Balancer**: Solo puertos 80/443 desde Internet (0.0.0.0/0)
+- **EKS Worker Nodes**: Solo tráfico desde CLB y control plane de EKS
+- **RDS MySQL**: Solo puerto 3306 desde EKS nodes y bastion host
+- **Bastion Host**: Solo SSH (puerto 22) desde Internet
+
+### Gestión de Secrets
+
+- **Kubernetes Secrets**: Credenciales de base de datos encriptadas en etcd
+- **Manifiestos dinámicos**: Los valores reales se generan en tiempo de deployment
+- **No versionado de secretos**: Los archivos con valores reales no se suben al repositorio
 
 ## 📈 Características Implementadas
 
@@ -256,11 +367,7 @@ ssh -i ~/.ssh/vockey.pem ec2-user@BASTION_IP
 - **Configuración dinámica** de réplicas (2-10 pods)
 
 ### 🛡️ Seguridad
-- **Security Groups** restrictivos por componente:
-  - CLB: Solo puertos 80/443 desde Internet
-  - EKS Nodes: Solo tráfico desde CLB y control plane
-  - RDS: Solo puerto 3306 desde EKS nodes y bastion
-  - Bastion: Solo SSH desde Internet
+- **Security Groups** restrictivos por componente
 - **Kubernetes Secrets** para credentials sensibles
 - **Network isolation** entre capas de aplicación
 - **Bastion host** para acceso administrativo seguro
@@ -272,11 +379,12 @@ ssh -i ~/.ssh/vockey.pem ec2-user@BASTION_IP
 - **Gestión de secrets** automatizada
 - **Deployment dinámico** con valores de Terraform
 
-### 📱 Monitoring & Logging
+### 📱 Observabilidad y Logging
 - **Health checks** en múltiples niveles
-- **Kubernetes native logging** con kubectl
+- **Logs unificados**: Apache y PHP logs van a stdout/stderr para Kubernetes
 - **Readiness y liveness probes** configurados
 - **Performance Insights** habilitado en RDS
+- **Kubernetes native logging** accesible vía `kubectl logs`
 
 ## 🧪 Testing y Verificación
 
@@ -292,6 +400,22 @@ aws eks describe-cluster --name obligatorio-eks-cluster
 aws rds describe-db-instances --db-instance-identifier db-obligatorio
 ```
 
+### ✅ Verificación de Acceso Web
+```bash
+# Verificar que la aplicación responde
+LB_URL=$(kubectl get service ecommerce-service -n ecommerce -o jsonpath='{.status.loadBalancer.ingress[0].hostname}')
+
+# Test página principal
+curl -s http://$LB_URL | grep -i "yem-yem"
+
+# Test admin login
+curl -s http://$LB_URL/admin/login | grep -i "login"
+
+# Verificar productos en la base de datos
+kubectl exec -it deployment/ecommerce-php -n ecommerce -- \
+  mysql -h $DB_HOST -u admin -padmin1234 ecommerce -e "SELECT COUNT(*) as productos FROM products;"
+```
+
 ### ✅ Verificación de Aplicación
 ```bash
 # Estado de pods
@@ -300,7 +424,7 @@ kubectl get pods -n ecommerce -o wide
 # Estado de servicios y load balancer
 kubectl get svc -n ecommerce
 
-# Logs de aplicación
+# Logs de aplicación (ahora van a stdout/stderr)
 kubectl logs -f deployment/ecommerce-php -n ecommerce
 
 # Test de conectividad a base de datos
@@ -328,25 +452,119 @@ curl http://$LB_URL
 ssh -i ~/.ssh/vockey.pem ec2-user@$(terraform output -raw bastion_public_ip)
 
 # Test de conectividad MySQL desde bastion
-ssh -i ~/.ssh/vockey.pem ec2-user@$(terraform output -raw bastion_public_ip) './test-mysql.sh'
+ssh -i ~/.ssh/vockey.pem ec2-user@$(terraform output -raw bastion_public_ip) \
+  'mysql -h'"$(terraform output -raw db_endpoint)"' -uadmin -padmin1234 -e "SELECT VERSION();"'
+```
+
+## 🚨 Troubleshooting
+
+### Problemas Comunes de MySQL
+
+**Error: "Can't connect to local MySQL server through socket"**
+```bash
+# Verificar que DB_HOST apunte al endpoint de RDS, no a localhost
+kubectl get configmap ecommerce-config -n ecommerce -o yaml
+
+# El DB_HOST debe ser algo como: obligatorio-rds.xxxxx.us-east-1.rds.amazonaws.com
+# NO debe ser: localhost, 127.0.0.1 o mysql
+```
+
+**Error: "Unknown database 'ecommerce'"**
+```bash
+# Conectar desde bastion y crear base de datos
+ssh -i ~/.ssh/vockey.pem ec2-user@BASTION_IP
+mysql -h DB_ENDPOINT -u admin -padmin1234 -e "CREATE DATABASE IF NOT EXISTS ecommerce;"
+```
+
+### Problemas de Kubernetes
+
+**Problema**: Pods en estado `ImagePullBackOff`
+```bash
+# Verificar que la imagen esté en ECR
+aws ecr describe-images --repository-name ecommerce-php
+
+# Verificar permisos de ECR en worker nodes
+kubectl describe pod POD_NAME -n ecommerce
+```
+
+**Problema**: Classic Load Balancer no responde
+```bash
+# Verificar health checks
+kubectl get endpoints -n ecommerce
+
+# Verificar que los pods estén en estado Ready
+kubectl get pods -n ecommerce -o wide
+
+# Verificar logs de los pods
+kubectl logs -f deployment/ecommerce-php -n ecommerce
+```
+
+**Problema**: No se puede conectar a RDS
+```bash
+# Verificar security groups desde dentro del pod
+kubectl exec -it deployment/ecommerce-php -n ecommerce -- \
+  nc -zv DB_ENDPOINT 3306
+
+# Verificar desde el bastion
+ssh -i ~/.ssh/vockey.pem ec2-user@BASTION_IP \
+  'telnet DB_ENDPOINT 3306'
+```
+
+### Problemas de AWS Academy
+
+**Problema**: Credenciales de AWS Academy expiran
+```bash
+# Renovar sesión del lab en AWS Academy
+# Obtener nuevas credenciales temporales
+aws configure set aws_access_key_id ASIA...
+aws configure set aws_secret_access_key ...
+aws configure set aws_session_token ...
+
+# Verificar conectividad
+aws sts get-caller-identity
+```
+
+**Problema**: No se puede hacer SSH al bastion
+```bash
+# Verificar permisos de la clave
+chmod 400 ~/.ssh/vockey.pem
+
+# Verificar IP del bastion
+terraform output bastion_public_ip
+
+# Verificar security group del bastion
+aws ec2 describe-security-groups --group-names bastion-sg
 ```
 
 ## 📚 Documentación
 
 ### 📖 Documentos Incluidos
 - **README principal** - Guía completa del proyecto
-- **Módulos Terraform** - Documentación individual de cada módulo
-- **Manifiestos K8s** - Explicación de cada recurso Kubernetes
-- **Scripts de automatización** - Guías de uso y troubleshooting
+- **Módulos Terraform** - Documentación detallada de cada módulo:
+  - `infrastructure/terraform/modules/vpc/README.md` - Configuración de red y subnets
+  - `infrastructure/terraform/modules/eks/README.md` - Cluster Kubernetes y node groups
+  - `infrastructure/terraform/modules/rds/README.md` - Base de datos MySQL Multi-AZ
+  - `infrastructure/terraform/modules/security/README.md` - Security Groups por capas
+  - `infrastructure/terraform/modules/bastion/README.md` - Host de administración
+- **Manifiestos K8s** - Explicación de recursos Kubernetes (`application/k8s/README.md`)
+- **Scripts de automatización** - Documentación inline en cada script
 
 ### 🔍 Comandos Útiles
+
+**Scripts principales:**
+```bash
+./scripts/build-and-push.sh     # Build y push automatizado a ECR
+./scripts/deploy-to-eks.sh      # Deploy automatizado a Kubernetes
+./scripts/health-check.sh       # Health checks para contenedor
+./scripts/entrypoint.sh         # Inicialización de contenedor (usado en Docker)
+```
 
 **Terraform**:
 ```bash
 terraform plan -out=tfplan  # Planificar cambios
 terraform apply tfplan      # Aplicar plan
 terraform output            # Ver outputs de infraestructura
-terraform destroy           # Destruir infraestructura (cuidado!)
+terraform destroy           # Destruir infraestructura (¡cuidado!)
 ```
 
 **Kubernetes**:
@@ -360,34 +578,37 @@ kubectl get hpa -n ecommerce                     # Ver auto scaling
 
 **Docker**:
 ```bash
-docker images                      # Listar imágenes
+docker images                     # Listar imágenes
 docker ps                         # Contenedores activos
 docker logs <container-id>        # Ver logs
 ```
 
 **AWS CLI**:
 ```bash
-aws eks describe-cluster --name obligatorio-eks-cluster    # Info del cluster
-aws rds describe-db-instances                              # Info de RDS
+aws eks describe-cluster --name obligatorio-eks-cluster               # Info del cluster
+aws rds describe-db-instances                                         # Info de RDS
 aws ec2 describe-instances --filters "Name=tag:Name,Values=*bastion*" # Info bastion
 ```
 
-### 🚨 Troubleshooting Común
+### 📊 Observabilidad y Logs
 
-**Problema**: Pods en estado `ImagePullBackOff`  
-**Solución**: Verificar que la imagen esté en ECR y las credenciales sean correctas
+**Manejo mejorado de logs:**
+- Los logs de Apache y PHP ahora se dirigen a `stdout/stderr`
+- Esto permite usar `kubectl logs` para acceder a todos los logs
+- Los logs están disponibles para herramientas de observabilidad de Kubernetes
+- No se almacenan logs localmente en el contenedor (mejor para contenedores efímeros)
 
-**Problema**: No se puede conectar a RDS  
-**Solución**: Verificar security groups y usar bastion host para acceso
+**Acceder a logs:**
+```bash
+# Logs en tiempo real
+kubectl logs -f deployment/ecommerce-php -n ecommerce
 
-**Problema**: Classic Load Balancer no responde  
-**Solución**: Verificar health checks y que los pods estén en estado `Ready`
+# Logs de un pod específico
+kubectl logs pod-name -n ecommerce
 
-**Problema**: Credenciales de AWS Academy expiran  
-**Solución**: Renovar sesión del lab y actualizar credenciales con `aws configure`
-
-**Problema**: No se puede hacer SSH al bastion  
-**Solución**: Verificar que vockey.pem tenga permisos 400 y la IP del bastion
+# Logs anteriores (si el pod se reinició)
+kubectl logs deployment/ecommerce-php -n ecommerce --previous
+```
 
 ## 🎓 Información Académica
 
@@ -395,7 +616,6 @@ aws ec2 describe-instances --filters "Name=tag:Name,Values=*bastion*" # Info bas
 - **Materia**: Implementación de Soluciones Cloud (ISC)
 - **Carrera**: Analista en Infraestructura Informática
 - **Año**: 2025
-- **Modalidad**: Obligatorio grupal
 
 ### Criterios de Evaluación Cumplidos
 - ✅ **Tolerancia a fallas** - Multi-AZ deployment
@@ -404,6 +624,9 @@ aws ec2 describe-instances --filters "Name=tag:Name,Values=*bastion*" # Info bas
 - ✅ **Mejoras propuestas** - Bastion host, contenedores, IaC
 - ✅ **Documentación completa** - README y documentación técnica
 - ✅ **Trabajo colaborativo** - Git con commits organizados
+- ✅ **Buenas prácticas de seguridad** - Gitignore mejorado, secrets management
+- ✅ **Automatización** - Scripts de build y deploy
+- ✅ **Observabilidad** - Logs centralizados y health checks
 
 ## 📄 Licencia
 

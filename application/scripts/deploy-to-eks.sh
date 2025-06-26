@@ -157,12 +157,20 @@ generate_manifests() {
 apply_manifests() {
     log "🚀 Aplicando manifests a Kubernetes..."
     
-    # Aplicar en orden
-    kubectl apply -f "$MANIFEST_DIR/namespace.yaml"
-    kubectl apply -f "$MANIFEST_DIR/secret.yaml"
-    kubectl apply -f "$MANIFEST_DIR/configmap.yaml"
-    kubectl apply -f "$MANIFEST_DIR/deployment.yaml"
-    kubectl apply -f "$MANIFEST_DIR/service.yaml"
+    # Lista de manifiestos a aplicar en orden
+    manifests=(namespace.yaml secret.yaml configmap.yaml deployment.yaml service.yaml hpa.yaml)
+    for manifest in "${manifests[@]}"; do
+        if [ ! -f "$MANIFEST_DIR/$manifest" ]; then
+            error "No se encontró el manifiesto: $MANIFEST_DIR/$manifest"
+            exit 1
+        fi
+        if kubectl apply -f "$MANIFEST_DIR/$manifest"; then
+            log "✅ Aplicado: $manifest"
+        else
+            error "Fallo al aplicar: $manifest"
+            exit 1
+        fi
+    done
     
     success "Manifests aplicados"
 }
@@ -179,6 +187,7 @@ verify_deployment() {
     log "📊 Estado del deployment:"
     kubectl get pods -n "$NAMESPACE"
     kubectl get services -n "$NAMESPACE"
+    kubectl get hpa -n "$NAMESPACE"
     
     success "Deployment verificado exitosamente"
 }

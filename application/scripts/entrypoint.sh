@@ -31,6 +31,19 @@ log "   - DB User: $DB_USER"
 log "   - App Env: $APP_ENV"
 log "   - Debug: $APP_DEBUG"
 
+# Validar variables de entorno críticas
+missing_env=0
+for var in DB_HOST DB_NAME DB_USER DB_PASSWORD; do
+    if [ -z "${!var}" ]; then
+        log "❌ Variable de entorno crítica faltante: $var"
+        missing_env=1
+    fi
+done
+if [ $missing_env -eq 1 ]; then
+    log "❌ Faltan variables de entorno críticas. Abortando."
+    exit 1
+fi
+
 # Generar configuración de base de datos
 log "📝 Generando configuración de base de datos..."
 cat > /var/www/html/views/db.php << EOF
@@ -141,6 +154,10 @@ log "📋 Configurando logs..."
 touch /var/log/apache2/error.log
 touch /var/log/apache2/access.log
 chown www-data:www-data /var/log/apache2/*.log
+
+# Redirigir logs de Apache y PHP a stdout/stderr
+ln -sf /dev/stdout /var/log/apache2/access.log
+ln -sf /dev/stderr /var/log/apache2/error.log
 
 log "🎉 Inicialización completa. Iniciando Apache..."
 log "🌍 Aplicación disponible en puerto 80"
